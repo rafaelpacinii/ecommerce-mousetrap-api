@@ -6,15 +6,17 @@ quarkus.datasource.username=dbuser
 quarkus.datasource.password=dbpasswd
 quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/db
 
-# Hibernate: cria/recria tabelas a cada reinício em desenvolvimento
-quarkus.hibernate-orm.database.generation=drop-and-create
+# Flyway cria o catálogo uma vez; Hibernate apenas verifica o esquema.
+quarkus.flyway.migrate-at-start=true
+quarkus.hibernate-orm.schema-management.strategy=validate
+quarkus.hibernate-orm.sql-load-script=no-file
 
 # Desabilita o DevServices (pois usamos container Docker ou PostgreSQL local explícito)
 quarkus.devservices.enabled=false
 
 # Exibir comandos SQL no console para depuração
 quarkus.hibernate-orm.log.sql=true
-quarkus.hibernate-orm.log.bind-parameters=true
+quarkus.hibernate-orm.log.bind-parameters=false
 
 # ===================================================================
 # Configuração de CORS (comunicação com Angular em localhost:4200)

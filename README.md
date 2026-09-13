@@ -1,83 +1,91 @@
-# ecommerce-mouses-api
+# MouseTrap — API
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+API REST do MouseTrap, um e-commerce especializado em mouses. O catálogo permite gerenciar marcas e produtos, com especificações técnicas, múltiplos tipos de conexão, preço e estoque.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Funcionalidades
 
-## Running the application in dev mode
+- Cadastro, consulta, edição e exclusão de marcas e mouses.
+- Validação de dados e unicidade de nomes de marcas e SKUs.
+- Proteção contra exclusão de marcas vinculadas a produtos.
+- Controle de versão na edição de mouses para detectar alterações concorrentes.
+- Respostas de erro padronizadas e documentação OpenAPI.
 
-You can run your application in dev mode that enables live coding using:
+A versão atual contempla a administração do catálogo. Autenticação, lista de desejos, pedidos e pagamentos estão no [planejamento do domínio](docs/modelagem/README.md). O carrinho está previsto como estado local do frontend.
 
-```shell script
+## Tecnologias e arquitetura
+
+Java 17, Quarkus 3, Hibernate ORM com Panache, PostgreSQL, Flyway, Jackson e Bean Validation. As versões das dependências são definidas no [pom.xml](pom.xml).
+
+O backend organiza as responsabilidades em recursos REST, serviços, repositórios e entidades. DTOs de entrada e resposta usam records; conversores persistem os IDs explícitos dos enums.
+
+```text
+src/main/java/br/unitins/tp2/
+├── model/        Entidades, enums e conversores JPA
+├── repository/   Consultas e persistência com Panache
+├── dto/          Contratos de entrada e resposta
+├── service/      Regras de negócio e transações
+├── resource/     Endpoints REST
+└── exception/    Tratamento centralizado de erros
+```
+
+## Desenvolvimento local
+
+Requisitos: JDK 17 com `JAVA_HOME` configurado e PostgreSQL 16. Os comandos abaixo são executados na pasta `api`.
+
+Crie a configuração local a partir do exemplo, caso ela ainda não exista:
+
+```bash
+test -f src/main/resources/application.properties || cp src/main/resources/application.properties.example src/main/resources/application.properties
+```
+
+Ajuste usuário, senha e URL do banco em `src/main/resources/application.properties`. Esse arquivo é ignorado pelo Git. A configuração de referência está em [application.properties.example](src/main/resources/application.properties.example).
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+A API estará disponível em `http://localhost:8080`. No modo de desenvolvimento, o Swagger UI fica em `/q/swagger-ui` e o Dev UI em `/q/dev`. O CORS permite a origem `http://localhost:4200`, com credenciais e os métodos GET, PUT, POST, DELETE, PATCH e OPTIONS.
 
-## Packaging and running the application
+## Banco de dados
 
-The application can be packaged using:
+O Flyway aplica as migrations de [src/main/resources/db/migration](src/main/resources/db/migration). O Hibernate valida o esquema na inicialização, sem recriar tabelas. A migration inicial cria `marca`, `mouse` e `mouse_conexao`, com chaves, índices e restrições de integridade.
 
-```shell script
-./mvnw package
+A primeira inicialização deve usar um banco vazio. Para adotar um banco com tabelas existentes, revise sua compatibilidade com as migrations antes de executá-las. Novas mudanças de esquema devem ser versionadas em novas migrations; arquivos já aplicados não devem ser modificados.
+
+## Testes
+
+Os testes HTTP usam `@QuarkusTest` e um PostgreSQL isolado, configurado em [CatalogoTestProfile](src/test/java/br/unitins/tp2/resource/CatalogoTestProfile.java). Com Docker disponível:
+
+```bash
+docker run --detach --rm --name ecommerce-mouses-crud-tests --publish 127.0.0.1:55439:5432 --env POSTGRES_USER=ecommerce_test --env POSTGRES_PASSWORD=ecommerce_test --env POSTGRES_DB=ecommerce_test postgres:16-alpine
+docker exec ecommerce-mouses-crud-tests pg_isready -U ecommerce_test -d ecommerce_test
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Quando o banco estiver aceitando conexões:
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+```bash
+./mvnw clean verify
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+A suíte cobre operações do catálogo, validações, registros inexistentes, vínculos entre marca e mouse, conflitos de versão e CORS. A configuração atual usa `skipITs=true` para Failsafe; os testes HTTP executam pelo Surefire.
 
-## Creating a native executable
+Ao terminar, remova o banco descartável:
 
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
+```bash
+docker stop ecommerce-mouses-crud-tests
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+## Build
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+`./mvnw clean verify` também gera a aplicação em `target/quarkus-app`. O diretório completo é necessário para executá-la:
+
+```bash
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-You can then execute your native executable with: `./target/ecommerce-mouses-api-1.0.0-SNAPSHOT-runner`
+## Documentação
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+- [Catálogo: contratos e regras de negócio](docs/catalogo.md).
+- [Modelo de dados e diagrama de classes](docs/modelagem/README.md).
 
-## Related Guides
-
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplified JPA/Hibernate data access layer with active record and repository patterns
-- REST ([guide](https://quarkus.io/guides/rest)): Build RESTful web services and APIs using Jakarta REST (formerly JAX-RS)
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Bean validation using Hibernate Validator and Jakarta Validation annotations
-- SmallRye JWT Build ([guide](https://quarkus.io/guides/security-jwt-build)): Create JSON Web Token with SmallRye JWT Build API
-- SmallRye JWT ([guide](https://quarkus.io/guides/security-jwt)): Secure your applications with JSON Web Token
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Generate OpenAPI schemas and serve Swagger UI for REST API documentation
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
-
-## Provided Code
-
-### Hibernate ORM
-
-Create your first JPA entity
-
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
-
-
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
-
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+Os endpoints administrativos ainda não exigem autenticação. O controle de acesso deve ser implementado antes de disponibilizá-los publicamente.
