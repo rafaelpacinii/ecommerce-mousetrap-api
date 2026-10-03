@@ -5,6 +5,7 @@ API REST do MouseTrap, um e-commerce especializado em mouses. O catálogo permit
 ## Funcionalidades
 
 - Cadastro, consulta, edição e exclusão de marcas e mouses.
+- Paginação e filtro server-side por nome nas listagens administrativas.
 - Validação de dados e unicidade de nomes de marcas e SKUs.
 - Proteção contra exclusão de marcas vinculadas a produtos.
 - Controle de versão na edição de mouses para detectar alterações concorrentes.
@@ -67,7 +68,7 @@ Quando o banco estiver aceitando conexões:
 ./mvnw clean verify
 ```
 
-A suíte cobre operações do catálogo, validações, registros inexistentes, vínculos entre marca e mouse, conflitos de versão e CORS. A configuração atual usa `skipITs=true` para Failsafe; os testes HTTP executam pelo Surefire.
+A suíte cobre operações do catálogo, validações, paginação e filtro de marcas, registros inexistentes, vínculos entre marca e mouse, conflitos de versão e CORS. A configuração atual usa `skipITs=true` para Failsafe; os testes HTTP executam pelo Surefire.
 
 Ao terminar, remova o banco descartável:
 
@@ -89,3 +90,7 @@ java -jar target/quarkus-app/quarkus-run.jar
 - [Modelo de dados e diagrama de classes](docs/modelagem/README.md).
 
 Os endpoints administrativos ainda não exigem autenticação. O controle de acesso deve ser implementado antes de disponibilizá-los publicamente.
+
+## Clientes e consulta por CEP
+
+Cadastro, edição, listagem e exclusão de clientes com endereço estruturado em Município e Estado, preenchimento por ViaCEP e validações nos dois lados. [Contratos, arquitetura, migration e avaliação](docs/clientes-cep.md).
